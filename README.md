@@ -329,16 +329,16 @@ the `chara` chunk (in addition to the `ccv3` chunk) to ensure compatibility with
 
 Requirements for Backfilling:
 
-1. Warning Injection: If backfilling, the application SHOULD prepend a warning to the
+1. **Warning Injection**: If backfilling, the application SHOULD prepend a warning to the
    `creator_notes` field of the V2 object:
 
     ```
     This character card is Character Card V3, but it is loaded as a Character Card V2. Please use a Character Card V3 compatible application to use this character card properly.
     ```
 
-2. Decorator Sanitization: The application SHOULD remove all CCv3-specific decorators (e.g.,
+2. **Decorator Sanitization**: The application SHOULD remove all CCv3-specific decorators (e.g.,
    `@@depth`, `@@roll`) from the Lorebook and prompts in the backfilled V2 object to prevent raw
    syntax from leaking into the chat.
 
-3. Read Priority: As specified in Section 3.2, V3-compliant applications MUST prioritize the `ccv3`
+3. **Read Priority**: As specified in Section 3.2, V3-compliant applications MUST prioritize the `ccv3`
    chunk and ignore the backfilled `chara` chunk if both are present.
