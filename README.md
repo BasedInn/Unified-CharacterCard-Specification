@@ -79,6 +79,9 @@ struct CharacterCardV1 {
 }
 ```
 
+All non-OPTIONAL fields **MUST** default to empty string, and **MUST NOT** use any variation of
+absent value/`null`/`undefined`.
+
 ### **2.2 The CCv2 Standard (Wrapper)**
 
 CCv2 introduces a wrapper to separate metadata from content and allow for extensions.
@@ -112,6 +115,9 @@ struct CharacterDataV2 {
 }
 ```
 
+`extensions` field **MUST** default to an empty object `{}`. Remaining non-OPTIONAL fields **MUST**
+default to empty string, and **MUST NOT** use any variation of absent value/`null`/`undefined`.
+
 ### **2.3 The CCv3 Standard (Extended)**
 
 CCv3 extends CCv2 with asset management, macros, and enhanced metadata.
@@ -144,6 +150,9 @@ struct CharacterAsset {
   ext: String;   // File extension (png, jpeg, webp)
 }
 ```
+
+All non-OPTIONAL fields **MUST** default to empty string, and **MUST NOT** use any variation of
+absent value/`null`/`undefined`.
 
 ## **3. Serialization and Embedding**
 
@@ -324,12 +333,18 @@ struct LorebookEntry {
 }
 ```
 
+If `recursive_scanning` is absent, the application can decide how to handle recursive scanning.
+
+If `case_sensitive` is absent, the applcation **MAY** treat the lorebook entry's keys as case-sensitive or case-insensitive.
+
 ### **5.2 Injection Logic**
 
 1. **Scan**: Check last `scan_depth` messages for strings in `keys`.
 2. **Filter**:
-   - If `selective` is `true`, check `secondary_keys`.
-   - If `use_regex` is `true`, treat `keys` as RegExp patterns.
+   - If `use_regex` is `true`: Treat keys as RegExp patterns. **MUST** ignore `secondary_keys` and
+     `@@exclude_keys`.
+   - If `selective` is `true` (`AND` `use_regex` is `false`): Required match = (At least one match
+     in `keys`) `AND` (At least one match in `secondary_keys`).
 3. **Budget**: If total tokens > `token_budget`, remove entries with lowest priority (or
    `insertion_order` if `priority` is unset) until within budget.
 4. **Insert**: Place `content` into prompt context based on `position` or `insertion_order`.
@@ -369,7 +384,9 @@ CCv3 allows special syntax in Lorebook `content` to control injection behavior. 
 - `@@dont_activate_after_match`: Deactivates for the rest of the chat after first trigger.
 - `@@is_greeting N`: Only trigger if current greeting index is `N` (0 = default).
 - `@@is_user_icon [name]`: Only trigger if user icon matches `[name]`.
-- `@@additional_keys K1,K2`: Require at least one of these keys to match (AND logic with main keys).
+- `@@additional_keys K1,K2`: Require at least one of these keys to match (`AND` logic with main
+  keys).
+  - If `use_regex` is `true`, applications SHOULD treat these keys as RegExp pattern. Applications MAY ignore this decorator entirely when `use_regex` is `true` for performance reasons.
 - `@@exclude_keys K1,K2`: Prevent trigger if any of these keys match.
 - `@@ignore_on_max_context`: Do not trigger (or trim first) if context limit is reached.
 - `@@disable_ui_prompt [type]`: Suppresses the inclusion of the specified prompt field/setting.
@@ -461,9 +478,9 @@ Requirements for Backfilling:
    This character card is Character Card V3, but it is loaded as a Character Card V2. Please use a Character Card V3 compatible application to use this character card properly.
    ```
 
-2. **Decorator Sanitization**: The application SHOULD remove all CCv3-specific decorators (e.g.,
-   `@@depth`, `@@roll`) from the Lorebook and prompts in the backfilled V2 object to prevent raw
-   syntax from leaking into the chat.
+2. **Decorator Sanitization**: The application SHOULD remove all decorators (e.g., `@@depth`,
+   `@@roll`) from the Lorebook and prompts in the backfilled V2 object to prevent raw syntax from
+   leaking into the chat.
 
 3. **Read Priority**: As specified in Section 3.2, V3-compliant applications MUST prioritize the
    `ccv3` chunk and ignore the backfilled `chara` chunk if both are present.
