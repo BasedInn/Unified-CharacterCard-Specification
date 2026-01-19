@@ -23,12 +23,20 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC
 2119\.
 
-- **CC**: Abbreviation for "Character Card".
-- **CCv1 / CCv2 / CCv3**: Abbreviations referring to Version 1, Version 2, and Version 3 of the
-  Character Card specification, respectively.
-- **Application**: The software reading or writing the CC.
-- **Prompt**: The final text sent to the LLM (Large Language Model).
-- **Context**: The accumulated history of the chat and system instructions.
+- **MUST / REQUIRED / SHALL**: Absolute requirement.
+- **SHOULD / RECOMMENDED**: Strong recommendation; ignore only with full understanding of
+  implications.
+- **MAY / OPTIONAL**: Truly optional.
+- **IN ANY CASE** (CCv3): The application must perform the action even if it violates other rules.
+
+**Additional Terms:**
+
+- **CC**: Character Card.
+- **Application**: Software reading or writing the CC.
+- **Prompt**: Final text sent to the LLM.
+- **Context**: Accumulated history and system instructions.
+- **Prefill**: Content pre-populated in the assistant's response slot.
+- **Regex Pattern**: Regular Expression pattern used to match text.
 
 ### **1.3 Scope and Disclaimer**
 
@@ -154,6 +162,9 @@ Character data is embedded inside the image metadata using `tEXt` chunks.
   is a Base64 encoded string of the JSON object.
 - **CCv3 Cards**: Data MUST be stored in a `tEXt` chunk with the keyword `ccv3`. The content is a
   Base64 encoded string of the `CharacterCardV3` JSON object.
+- **CCv3 Asset Extensions**: CCv3-compliant PNG/APNG files MAY use `tEXt` chunks named
+  `chara-ext-asset_:{path}` containing Base64 encoded asset data. This allows asset embedding
+  without the CHARX archive format.
 
 **Implementation Rule**: If both `ccv3` and `chara` chunks exist, the application MUST prioritize
 `ccv3`.
@@ -164,10 +175,44 @@ A `.charx` file is a standard ZIP archive containing resources.
 
 - **Root Structure**: MUST contain a file named `card.json` (the `CharacterCardV3` object).
 - **Assets**: MUST be stored in subdirectories following the convention `assets/{type}/{category}/`.
-    - Example: `assets/icon/images/my_icon.png`
+  - `{type}` (Usage):
+
+    | Value        | Purpose                                         |
+    | ------------ | ----------------------------------------------- |
+    | `icon`       | Primary character portrait or avatar.           |
+    | `background` | Background image for the character's interface. |
+    | `user_icon`  | Icon representing the user/player.              |
+    | `emotion`    | Character expressions or emotional states.      |
+    | `other`      | Application-specific or miscellaneous assets.   |
+
+  - `{category}` (Format):
+
+    | Value    | Purpose                         | Example file extension   |
+    | -------- | ------------------------------- | ------------------------ |
+    | `images` | Static visual assets.           | `.png`, `.jpeg`, `.webp` |
+    | `audio`  | Sound effects or voice lines.   | `.mp3`, `.wav`           |
+    | `video`  | Animated backgrounds or assets. | `.mp4`, `.webm`          |
+    | `l2d`    | Live2D model files.             | `.model3.json`           |
+    | `3d`     | 3D meshes and models.           | `.obj`, `.fbx`           |
+    | `ai`     | Local model weights or configs. | `.safetensors`, `.ckpt`  |
+    | `fonts`  | Custom UI typography.           | `.ttf`, `.otf`           |
+    | `code`   | Scripting or extension code.    | `.js`, `.lua`            |
+    | `other`  | Uncategorized file formats.     | (Any)                    |
+
+  - Example: `assets/icon/images/my_icon.png`
+
 - **Referencing**: Inside `card.json`, the URI for an asset should be
   `embeded://assets/icon/images/my_icon.png` (Note spelling: embeded with one 'd' in the middle is
   the standard in CCv3 spec).
+
+#### **Additional CHARX Requirements**
+
+- **Encryption**: ZIP files **SHOULD NOT** be encrypted.
+- **File Names**: **SHOULD** only use ASCII characters to prevent compatibility issues.
+- **Application Data**: Application-specific data **MAY** be stored as a JSON file in the root of
+  the zip.
+- **Validation**: Applications **MAY** reject CHARX files that are too large, corrupted, invalid, or
+  encrypted.
 
 ## **4. Field Semantics & Behavior**
 
@@ -175,18 +220,28 @@ A `.charx` file is a standard ZIP archive containing resources.
 
 These fields directly influence the LLM generation context.
 
-- **`name`**: The primary identifier. Replaces `{{char}}` placeholders unless `nickname` is present
-  (CCv3).
+- **`name`**: The primary identifier.
+  - Replaces `{{char}}` (and legacy `<BOT>`) placeholders.
+  - If `nickname` is present (CCv3), `nickname` takes precedence for replacements.
 - **`description`** / **`personality`**: Usually combined and sent as system instruction or
   top-of-context info.
 - **`scenario`**: Describes the current scene.
 - **`mes_example`**: MUST be formatted as dialogue examples (e.g.,
   `<START\>\n{{user}}: Hello\n{{char}}: Hi!`). Pruned if context limit is reached.
 - **`system_prompt`** (CCv2+): If present and not empty, this MUST replace the user's global system
-  prompt settings. Supports `{{original}}` placeholder to include the user's global prompt.
+  prompt settings.
+  - **`{{original}}`**: Applications MUST replace this placeholder with the user's global system
+    prompt.
+    - _Example_: Character prompt `"{{original}}\nAct like a pirate"` + User prompt `"Be helpful"`
+      -> Result: `"Be helpful\nAct like a pirate"`.
 - **`post_history_instructions`** (CCv2+): "Jailbreak" or "UJB". Instructions injected _after_ the
   chat history for stronger adherence. MUST replace global settings if present. Supports
   `{{original}}`.
+
+**Legacy Placeholders**: Applications MUST support case-insensitive replacement of:
+
+- `{{char}}` or `<BOT>` -> Character Name (or Nickname)
+- `{{user}}` or `<USER>` -> User Name
 
 ### **4.2 Metadata Fields**
 
@@ -200,12 +255,32 @@ These fields directly influence the LLM generation context.
 
 The assets array defines resources.
 
+#### **Asset Object Fields**
+
+- **`type`**: The category of asset.
+  - Standard types: `icon`, `background`, `user_icon`, `emotion`.
+  - Custom types SHOULD start with `x_` to prevent conflicts.
+- **`name`**: Identifier string.
+  - For `icon`: `"main"` indicates the primary avatar.
+  - For `emotion`: The emotion name (e.g., `"happy"`, `"angry"`).
+  - For `background`: Descriptive name (e.g., `"forest"`, `"city"`).
+- **`ext`**: File extension in lowercase (e.g., `"png"`, `"webp"`).
+  - Applications SHOULD support at least PNG, JPEG, and WebP.
 - **`uri`**:
-    - `http://` / `https://`: Remote resource.
-    - `embeded://`: References a file inside the CHARX zip.
-    - `ccdefault:`:
-        - For `icon`: Refers to the PNG image the card is embedded in.
-        - For `user_icon`: Refers to the application's default user avatar.
+  - `http://` / `https://`: Remote resource.
+  - `embeded://`: References a file inside the CHARX zip.
+  - `ccdefault:`:
+    - For `icon`: Refers to the PNG image the card is embedded in.
+    - For `user_icon`: Refers to the application's default user avatar.
+
+#### **Default Behavior**
+
+If the `assets` field is undefined, applications MUST behave as if it contains:
+
+```json
+[{ "type": "icon", "uri": "ccdefault:", "name": "main", "ext": "png" }]
+```
+
 - **Resolution**: If multiple assets of type icon exist, the one with name: "`main`" is the primary
   avatar.
 
@@ -233,6 +308,12 @@ struct LorebookEntry {
   insertion_order: Integer;  // Lower number = Higher in context
   case_sensitive?: Boolean;
 
+  /* Optional Metadata */
+  name?: String;             // Entry name (AgnAI)
+  id?: String | Number;      // Entry ID (ST, Risu)
+  comment?: String;          // Comment (ST, Risu)
+  extensions: Map<String, Any>;
+
   /* CCv3 Features (Backwards Compatible as Optional) */
   use_regex: Boolean;              // If true, `keys` are regex patterns
   constant?: Boolean;              // If true, always injected (subject to budget)
@@ -247,11 +328,24 @@ struct LorebookEntry {
 
 1. **Scan**: Check last `scan_depth` messages for strings in `keys`.
 2. **Filter**:
-    - If `selective` is `true`, check `secondary_keys`.
-    - If `use_regex` is `true`, treat `keys` as RegExp patterns.
+   - If `selective` is `true`, check `secondary_keys`.
+   - If `use_regex` is `true`, treat `keys` as RegExp patterns.
 3. **Budget**: If total tokens > `token_budget`, remove entries with lowest priority (or
    `insertion_order` if `priority` is unset) until within budget.
 4. **Insert**: Place `content` into prompt context based on `position` or `insertion_order`.
+
+### **5.3 Standalone Lorebook Export (CCv3)**
+
+If exporting a lorebook separately from a character card, it **SHOULD** use:
+
+```ts
+{
+  spec: 'lorebook_v3',
+  data: Lorebook
+}
+```
+
+This allows lorebooks to be shared and imported independently.
 
 ## **6. Advanced Features (CCv3)**
 
@@ -260,12 +354,40 @@ struct LorebookEntry {
 CCv3 allows special syntax in Lorebook `content` to control injection behavior. Syntax:
 `@@decorator_name value`.
 
-- `@@depth N`: Insert `N` messages/tokens back from the latest message.
-- `@@scan_depth N`: Override scan depth for this specific entry.
+- `@@depth N`: Insert `N` messages back from the latest message.
+- `@@instruct_depth N`: Insert `N` tokens back (for instruct models).
+- `@@reverse_depth N`: Count `N` messages from the start of context.
+- `@@reverse_instruct_depth N`: Count `N` tokens from the start of context.
+- `@@scan_depth N`: Override scan depth (messages) for this entry.
+- `@@instruct_scan_depth N`: Override scan depth (tokens) for this entry.
 - `@@role [system|user|assistant]`: Force the injected content to be treated as a specific role.
-- `@@activate_only_after N`: Only trigger if message count > `N`.
+- `@@position [loc]`: Insert at specific location (`after_desc`, `before_desc`, `personality`,
+  `scenario`).
+- `@@activate_only_after N`: Only trigger if message count >= `N`.
+- `@@activate_only_every N`: Only trigger if message count is divisible by `N`.
+- `@@keep_activate_after_match`: Stays active for the rest of the chat after first trigger.
+- `@@dont_activate_after_match`: Deactivates for the rest of the chat after first trigger.
+- `@@is_greeting N`: Only trigger if current greeting index is `N` (0 = default).
+- `@@is_user_icon [name]`: Only trigger if user icon matches `[name]`.
+- `@@additional_keys K1,K2`: Require at least one of these keys to match (AND logic with main keys).
+- `@@exclude_keys K1,K2`: Prevent trigger if any of these keys match.
+- `@@ignore_on_max_context`: Do not trigger (or trim first) if context limit is reached.
 - `@@disable_ui_prompt [type]`: Suppresses the inclusion of the specified prompt field/setting.
   `[type]` is typically `system_prompt` or `post_history_instructions`.
+- `@@activate`: Force activation (always triggers).
+- `@@dont_activate`: Force deactivation (never triggers).
+
+#### **Fallback Syntax**
+
+Decorators can use `@@@` (three `@` symbols) to specify fallbacks. If an application doesn't
+recognize a decorator, it checks the next line.
+
+```
+@@risu_only_decorator 4
+@@@activate_only_after 4
+```
+
+Multiple fallbacks are checked top-to-bottom until one is recognized.
 
 ### **6.2 Macros (Curly Braced Syntax)**
 
@@ -291,7 +413,10 @@ specification.
   context.
 - `{{roll:N}}` / `{{roll:dN}}`: Generates a random integer between 1 and N (inclusive). The d prefix
   is optional and case-insensitive. Examples: `{{roll:20}}`, `{{roll:d20}}`, `{{roll:D6}}`.
-- `{{// comment}}`: Removed from output (comment).
+- `{{// comment}}`: Removed from output (comment). Not used for lorebook matching.
+- `{{hidden_key:A}}`: Removed from output, but `A` IS used for recursive lorebook key matching.
+- `{{comment:A}}`: Displayed in the UI as an inline comment (not sent to LLM).
+- `{{reverse:A}}`: Reverses the string `A` (e.g., "spoilers").
 
 ## **7. Implementation Guidelines**
 
@@ -300,27 +425,27 @@ specification.
 To determine how to parse an imported file:
 
 1. **Check `spec`**:
-    - If `spec == "chara_card_v3"`, parse as **CCv3**.
-    - If `spec == "chara_card_v2"`, parse as **CCv2**.
-    - If `spec` is missing/undefined, parse as **CCv1**.
+   - If `spec == "chara_card_v3"`, parse as **CCv3**.
+   - If `spec == "chara_card_v2"`, parse as **CCv2**.
+   - If `spec` is missing/undefined, parse as **CCv1**.
 2. **Check `spec_version`** (`float` parsing):
-    - **CRITICAL**: The CCv3 specification mandates that `spec_version` strings be parsed as
-      floating-point numbers. This breaks Semantic Versioning conventions.
-    - `"3.8"` (parsed as `3.80f`) > `"3.11"` (parsed as `3.11f`).
-    - Implementers MUST NOT use SemVer comparison libraries. Use simple `float` comparison.
+   - **CRITICAL**: The CCv3 specification mandates that `spec_version` strings be parsed as
+     floating-point numbers. This breaks Semantic Versioning conventions.
+   - `"3.8"` (parsed as `3.80f`) > `"3.11"` (parsed as `3.11f`).
+   - Implementers MUST NOT use SemVer comparison libraries. Use simple `float` comparison.
 
 ### **7.2 Backwards Compatibility**
 
 - **CCv3 reading CCv2**: CCv3 is a superset. Populate missing CCv3 fields (like `assets`) with
   defaults (empty array or standard icon mapping).
 - **CCv2 reading CCv1**: Wrap CCv1 fields into the `data` object structure.
-- **Handling `character_book`**: Convert legacy CCv1/CCv2 lorebooks to the CCv3 structure by assuming
-  `use_regex: false` and `constant: false` unless specified.
+- **Handling `character_book`**: Convert legacy CCv1/CCv2 lorebooks to the CCv3 structure by
+  assuming `use_regex: false` and `constant: false` unless specified.
 
 ### **7.3 Unknown Fields**
 
-Applications MUST NOT delete unknown fields in `extensions` or the root object when saving/exporting.
-This ensures forward compatibility and preserves data from other applications.
+Applications MUST NOT delete unknown fields in `extensions` or the root object when
+saving/exporting. This ensures forward compatibility and preserves data from other applications.
 
 ### **7.4 Backfilling (V3 to V2 Downgrade)**
 
@@ -332,13 +457,55 @@ Requirements for Backfilling:
 1. **Warning Injection**: If backfilling, the application SHOULD prepend a warning to the
    `creator_notes` field of the V2 object:
 
-    ```
-    This character card is Character Card V3, but it is loaded as a Character Card V2. Please use a Character Card V3 compatible application to use this character card properly.
-    ```
+   ```
+   This character card is Character Card V3, but it is loaded as a Character Card V2. Please use a Character Card V3 compatible application to use this character card properly.
+   ```
 
 2. **Decorator Sanitization**: The application SHOULD remove all CCv3-specific decorators (e.g.,
    `@@depth`, `@@roll`) from the Lorebook and prompts in the backfilled V2 object to prevent raw
    syntax from leaking into the chat.
 
-3. **Read Priority**: As specified in Section 3.2, V3-compliant applications MUST prioritize the `ccv3`
-   chunk and ignore the backfilled `chara` chunk if both are present.
+3. **Read Priority**: As specified in Section 3.2, V3-compliant applications MUST prioritize the
+   `ccv3` chunk and ignore the backfilled `chara` chunk if both are present.
+
+## **8. Appendix: Design Rationale**
+
+This section explains the design decisions behind the Character Card specification.
+
+### **8.1 Why CCv2 Uses a `data` Wrapper**
+
+CCv1 fields are at the root level. CCv2 nests them inside a `data` object to prevent V1-only editors
+from successfully loading a V2 card as V1, which would result in data loss. If a V1 editor loads a
+V2 card, it will fail to find the expected root-level fields, alerting the user that the format is
+unsupported.
+
+### **8.2 Why `system_prompt` Overrides User Settings**
+
+Prior to CCv2, botmakers had no control over the system prompt users employed. This made it
+impossible to ensure consistent character behavior. The specification **requires** that character
+`system_prompt` override user settings by default to give botmakers control over the experience.
+Users can still override if they choose, but this must be an explicit action.
+
+### **8.3 Why `post_history_instructions` Exists**
+
+It was discovered that system instructions placed **after** conversation history have stronger
+influence on model behavior. CCv2 standardizes this mechanism, previously known as "UJB" or
+"Jailbreak" in various frontends.
+
+### **8.4 Why CCv3 Uses Float Versioning**
+
+CCv3's decision to use float parsing for `spec_version` (rather than SemVer) is a design choice that
+simplifies comparison logic but breaks industry conventions. This is preserved verbatim from the
+upstream specification to ensure strict compatibility with existing implementations.
+
+### **8.5 Why Character Books Stack with World Books**
+
+Character-specific lorebooks (**SHOULD**) stack with user world books rather than replace them. This
+allows botmakers to include essential character lore while users add their own world-building
+context. Character books take precedence in case of conflict.
+
+### **8.6 Why Decorators Were Introduced in CCv3**
+
+Adding new fields for every advanced feature would bloat the specification and confuse newcomers.
+Decorators allow power users to access advanced features through a simple text syntax
+(`@@decorator value`) without modifying the data structure.
