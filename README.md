@@ -505,7 +505,7 @@ Requirements for Backfilling:
 3. **Read Priority**: As specified in Section 3.2, V3-compliant applications MUST prioritize the
    `ccv3` chunk and ignore the backfilled `chara` chunk if both are present.
 
-## **8. Appendix: Design Rationale**
+## **8. Appendix A: Design Rationale**
 
 This section explains the design decisions behind the Character Card specification.
 
@@ -546,3 +546,11 @@ context. Character books take precedence in case of conflict.
 Adding new fields for every advanced feature would bloat the specification and confuse newcomers.
 Decorators allow power users to access advanced features through a simple text syntax
 (`@@decorator value`) without modifying the data structure.
+
+## **9. Appendix B: Data Structure's Conceptual Diagram**
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="CC_Specs_Dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="CC_Specs_Light.svg">
+  <img alt="Fallback image description" src="default-image.png">
+</picture>
