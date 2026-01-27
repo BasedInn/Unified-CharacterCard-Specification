@@ -245,7 +245,7 @@ PNG/APNG files **MAY** contain embedded assets as additional tEXt chunks.
 
 **Requirements:**
 
-- The tEXt chunk keyword **MUST** be `chara-ext-asset_:{path}` where `{path}` is the asset path.
+- The `tEXt` chunk keyword **MUST** be `chara-ext-asset_:{path}` where `{path}` is the asset path.
 - The chunk value **MUST** be Base64-encoded binary data.
 - Assets are accessed via the URI `__asset:{path}`.
 
@@ -266,7 +266,7 @@ CHARX is an archive format for Character Card V3 objects with embedded assets.
 - A CHARX file is a ZIP archive.
 - The ZIP archive **MUST** contain a `card.json` file at the root containing the CharacterCardV3
   object.
-- The ZIP archive **MUST** NOT be encrypted.
+- The ZIP archive **MUST NOT** be encrypted.
 - File names and paths within the archive **SHOULD** use only ASCII characters.
 
 **Asset Organization:**
@@ -686,18 +686,18 @@ Jailbreak) in some applications.
 
 #### 7.5.1 `creator_notes` (V2+)
 
-| Property       | Value     |
-| -------------- | --------- |
-| Type           | `String`  |
-| Required       | Yes (V2+) |
-| Default        | `""`      |
-| Used in Prompt | MUST NOT  |
+| Property       | Value        |
+| -------------- | ------------ |
+| Type           | `String`     |
+| Required       | Yes (V2+)    |
+| Default        | `""`         |
+| Used in Prompt | **MUST NOT** |
 
 Notes from the character creator intended for users and other creators.
 
 **Requirements:**
 
-- **MUST** NOT be included in prompts sent to AI models.
+- **MUST NOT** be included in prompts sent to AI models.
 - **SHOULD** be prominently displayed to users (at least one paragraph **SHOULD** be visible).
 
 **V3 Behavior:**
@@ -713,7 +713,7 @@ Notes from the character creator intended for users and other creators.
 | Type           | `Optional<Record<String, String>>` |
 | Required       | No                                 |
 | Default        | Absent                             |
-| Used in Prompt | MUST NOT                           |
+| Used in Prompt | **MUST NOT**                       |
 
 Localized versions of creator notes. Keys **MUST** be valid ISO 639-1 language tags (e.g., `"en"`,
 `"ja"`).
@@ -726,23 +726,23 @@ Localized versions of creator notes. Keys **MUST** be valid ISO 639-1 language t
 
 #### 7.5.3 `creator` (V2+)
 
-| Property       | Value     |
-| -------------- | --------- |
-| Type           | `String`  |
-| Required       | Yes (V2+) |
-| Default        | `""`      |
-| Used in Prompt | MUST NOT  |
+| Property       | Value        |
+| -------------- | ------------ |
+| Type           | `String`     |
+| Required       | Yes (V2+)    |
+| Default        | `""`         |
+| Used in Prompt | **MUST NOT** |
 
 The name or identifier of the character's creator.
 
 #### 7.5.4 `character_version` (V2+)
 
-| Property       | Value     |
-| -------------- | --------- |
-| Type           | `String`  |
-| Required       | Yes (V2+) |
-| Default        | `""`      |
-| Used in Prompt | MUST NOT  |
+| Property       | Value        |
+| -------------- | ------------ |
+| Type           | `String`     |
+| Required       | Yes (V2+)    |
+| Default        | `""`         |
+| Used in Prompt | **MUST NOT** |
 
 Version identifier for the character card. **MAY** be used for display and sorting.
 
@@ -753,14 +753,14 @@ Version identifier for the character card. **MAY** be used for display and sorti
 | Type           | `Array<String>` |
 | Required       | Yes (V2+)       |
 | Default        | `[]`            |
-| Used in Prompt | SHOULD NOT      |
+| Used in Prompt | **SHOULD NOT**  |
 
 Categorization tags for the character.
 
 **Requirements:**
 
 - No restrictions on tag string content.
-- **SHOULD** NOT be used in prompt engineering.
+- **SHOULD NOT** be used in prompt engineering.
 - **MAY** be used for frontend sorting and filtering.
 - Filtering **SHOULD** be case-insensitive.
 
@@ -771,16 +771,16 @@ Categorization tags for the character.
 | Type           | `Optional<Array<String>>` |
 | Required       | No                        |
 | Default        | Absent                    |
-| Used in Prompt | MUST NOT                  |
+| Used in Prompt | **MUST NOT**              |
 
 URLs or identifiers indicating the origin of the character card.
 
 **Requirements:**
 
 - Elements **SHOULD** be HTTP/HTTPS URLs or platform-specific identifiers.
-- This field **SHOULD** NOT be user-editable.
+- This field **SHOULD NOT** be user-editable.
 - Applications **MAY** provide UI to open source URLs.
-- Applications **SHOULD** only append to this array and **SHOULD** NOT modify or remove existing
+- Applications **SHOULD** only append to this array and **SHOULD NOT** modify or remove existing
   elements unless the element was added by the same application.
 - Applications **MAY** remove elements if they significantly impair performance or are harmful.
 
@@ -791,10 +791,10 @@ URLs or identifiers indicating the origin of the character card.
 | Type           | `Optional<Integer>` |
 | Required       | No                  |
 | Default        | Absent              |
-| Used in Prompt | MUST NOT            |
+| Used in Prompt | **MUST NOT**        |
 
 Unix timestamp (seconds since 1970-01-01 00:00:00 UTC) of character card creation. Applications
-**SHOULD** set this when creating a new character and **SHOULD** NOT modify it thereafter.
+**SHOULD** set this when creating a new character and **SHOULD NOT** modify it thereafter.
 
 #### 7.5.8 `modification_date` (V3 Only)
 
@@ -803,7 +803,7 @@ Unix timestamp (seconds since 1970-01-01 00:00:00 UTC) of character card creatio
 | Type           | `Optional<Integer>` |
 | Required       | No                  |
 | Default        | Absent              |
-| Used in Prompt | MUST NOT            |
+| Used in Prompt | **MUST NOT**        |
 
 Unix timestamp (seconds since 1970-01-01 00:00:00 UTC) of last modification. Applications **SHOULD**
 update this when saving changes.
@@ -825,7 +825,7 @@ A container for application-specific or experimental data.
 
 - **MUST** default to an empty object.
 - **MAY** contain any arbitrary JSON-serializable key-value pairs.
-- Applications **MUST** NOT destroy unknown key-value pairs when importing and exporting.
+- Applications **MUST NOT** destroy unknown key-value pairs when importing and exporting.
 - Applications **SHOULD** namespace keys to prevent conflicts:
   - Preferred: `"appname/key"` (e.g., `"agnai/voice"`)
   - Acceptable: `"appname_key"` (e.g., `"agnai_voice"`)
@@ -916,7 +916,7 @@ is `ccdefault:`, the `ext` field **SHOULD** be ignored.
 | V2      | `"chara_card_v2"` |
 | V3      | `"chara_card_v3"` |
 
-Applications **SHOULD** NOT consider a card as conforming to a specification version if this field
+Applications **SHOULD NOT** consider a card as conforming to a specification version if this field
 does not match exactly.
 
 #### 7.8.2 `spec_version`
@@ -929,7 +929,7 @@ does not match exactly.
 **V3 Versioning Behavior:**
 
 - Future minor versions (e.g., `"3.1"`) may be parsed as floats for comparison.
-- Applications **SHOULD** NOT reject cards with higher `spec_version` values.
+- Applications **SHOULD NOT** reject cards with higher `spec_version` values.
 - Applications **SHOULD** alert users when loading cards from newer specification versions.
 - Applications **SHOULD** fill missing fields with default values when importing newer versions.
 
@@ -947,7 +947,7 @@ information entries that are conditionally inserted into prompts.
 | Property       | Value              |
 | -------------- | ------------------ |
 | Type           | `Optional<String>` |
-| Used in Prompt | SHOULD NOT         |
+| Used in Prompt | **SHOULD NOT**     |
 
 Identifier for the lorebook. Not used in prompt engineering.
 
@@ -956,7 +956,7 @@ Identifier for the lorebook. Not used in prompt engineering.
 | Property       | Value              |
 | -------------- | ------------------ |
 | Type           | `Optional<String>` |
-| Used in Prompt | SHOULD NOT         |
+| Used in Prompt | **SHOULD NOT**     |
 
 Description or notes about the lorebook.
 
@@ -1070,7 +1070,7 @@ The text to insert into the prompt when the entry matches.
 | Type     | `Boolean` |
 | Required | Yes       |
 
-When `false`, the entry **MUST** NOT match **IN ANY CASE**.
+When `false`, the entry **MUST NOT** match **IN ANY CASE**.
 
 #### 8.2.6 `insertion_order`
 
@@ -1128,7 +1128,7 @@ When `true`, `keys` are interpreted as regular expression patterns instead of li
 | Property       | Value              |
 | -------------- | ------------------ |
 | Type           | `Optional<String>` |
-| Used in Prompt | SHOULD NOT         |
+| Used in Prompt | **SHOULD NOT**     |
 
 Human-readable identifier for the entry. Not used in prompt engineering.
 
@@ -1137,7 +1137,7 @@ Human-readable identifier for the entry. Not used in prompt engineering.
 | Property       | Value                              |
 | -------------- | ---------------------------------- |
 | Type           | `Optional<Union<Integer, String>>` |
-| Used in Prompt | SHOULD NOT                         |
+| Used in Prompt | **SHOULD NOT**                     |
 
 Machine identifier for the entry. V2 specifies `Integer`; V3 allows `Integer` or `String`.
 
@@ -1146,7 +1146,7 @@ Machine identifier for the entry. V2 specifies `Integer`; V3 allows `Integer` or
 | Property       | Value              |
 | -------------- | ------------------ |
 | Type           | `Optional<String>` |
-| Used in Prompt | SHOULD NOT         |
+| Used in Prompt | **SHOULD NOT**     |
 
 Notes about the entry. Not used in prompt engineering.
 
@@ -1212,7 +1212,7 @@ Multiple fallbacks are checked in order.
 #### 9.2.1 `@@activate_only_after`
 
 **Value:** Integer  
-**Behavior:** The entry **SHOULD** NOT match until the chat log's assistant message count exceeds
+**Behavior:** The entry **SHOULD NOT** match until the chat log's assistant message count exceeds
 the specified value.
 
 If message counting is not possible, the entry **SHOULD** NOT match until the Nth user input is
@@ -1221,7 +1221,7 @@ received.
 #### 9.2.2 `@@activate_only_every`
 
 **Value:** Integer  
-**Behavior:** The entry **SHOULD** NOT match unless the chat log's assistant message count is
+**Behavior:** The entry **SHOULD NOT** match unless the chat log's assistant message count is
 divisible by the specified value.
 
 If message counting is not possible, the fallback behavior is implementation-defined.
@@ -1235,7 +1235,7 @@ messages, even if keys no longer match.
 #### 9.2.4 `@@dont_activate_after_match`
 
 **Value:** None (flag)  
-**Behavior:** Once the entry matches, it **SHOULD** NOT match again **IN ANY CASE** for subsequent
+**Behavior:** Once the entry matches, it **SHOULD NOT** match again **IN ANY CASE** for subsequent
 messages.
 
 #### 9.2.5 `@@activate`
@@ -1247,7 +1247,7 @@ conditions.
 #### 9.2.6 `@@dont_activate`
 
 **Value:** None (flag)  
-**Behavior:** The entry **SHOULD** NOT match **IN ANY CASE**, unless `@@activate` is also present.
+**Behavior:** The entry **SHOULD NOT** match **IN ANY CASE**, unless `@@activate` is also present.
 Useful for disabling entries or as fallback targets.
 
 ### 9.3 Positioning Decorators
@@ -1330,7 +1330,7 @@ Applications **MAY** support additional positions. Unrecognized positions **SHOU
 #### 9.5.1 `@@is_greeting`
 
 **Value:** Integer  
-**Behavior:** The entry **MUST** NOT match unless the active greeting index equals the specified
+**Behavior:** The entry **MUST NOT** match unless the active greeting index equals the specified
 value.
 
 - Index 0 = `first_mes`
@@ -1341,7 +1341,7 @@ Ignored if greeting detection is not possible.
 #### 9.5.2 `@@is_user_icon`
 
 **Value:** String  
-**Behavior:** The entry **SHOULD** NOT match unless the active user icon's `name` equals the
+**Behavior:** The entry **SHOULD NOT** match unless the active user icon's `name` equals the
 specified value.
 
 Ignored if user icon detection is not possible.
@@ -1349,7 +1349,7 @@ Ignored if user icon detection is not possible.
 #### 9.5.3 `@@ignore_on_max_context`
 
 **Value:** None (flag)  
-**Behavior:** The entry **SHOULD** NOT match when context is at maximum capacity, or **SHOULD** be
+**Behavior:** The entry **SHOULD NOT** match when context is at maximum capacity, or **SHOULD** be
 trimmed first when maximum context is reached.
 
 Ignored if context limit detection is not possible.
@@ -1359,7 +1359,7 @@ Ignored if context limit detection is not possible.
 #### 9.6.1 `@@additional_keys`
 
 **Value:** Comma-separated strings  
-**Behavior:** The entry **SHOULD** NOT match unless the chat log contains at least one of these
+**Behavior:** The entry **SHOULD NOT** match unless the chat log contains at least one of these
 additional keys (in addition to the primary `keys` requirement).
 
 This decorator **MAY** appear multiple times (values accumulate).
@@ -1369,7 +1369,7 @@ When `use_regex` is `true`, values are treated as regex patterns.
 #### 9.6.2 `@@exclude_keys`
 
 **Value:** Comma-separated strings  
-**Behavior:** The entry **SHOULD** NOT match if the chat log contains any of these keys.
+**Behavior:** The entry **SHOULD NOT** match if the chat log contains any of these keys.
 
 Ignored when `use_regex` is `true`.
 
@@ -1431,7 +1431,7 @@ expressions in the same generation context.
 #### 10.3.1 `{{// A}}`
 
 **Replacement:** Empty string.  
-**Behavior:** The content `A` is discarded entirely. **SHOULD** NOT be used for lorebook key
+**Behavior:** The content `A` is discarded entirely. **SHOULD NOT** be used for lorebook key
 matching.
 
 #### 10.3.2 `{{hidden_key:A}}`
@@ -1444,7 +1444,7 @@ scanning.
 
 **Replacement:** Empty string (in prompts).  
 **Behavior:** The content `A` **MAY** be displayed to the user as an inline comment in the UI but
-**MUST** NOT be sent to the AI model. **SHOULD** NOT be used for lorebook key matching.
+**MUST** NOT be sent to the AI model. **SHOULD NOT** be used for lorebook key matching.
 
 ### 10.4 Text Transformation Macros
 
@@ -1517,7 +1517,7 @@ this consolidated document.
 **Issue:** Whether `{{user}}` and `<USER>` should be replaced inside the `name` field is explicitly
 marked as "UNSPECIFIED."
 
-**Recommendation:** Applications **SHOULD** NOT perform substitution in the `name` field to avoid
+**Recommendation:** Applications **SHOULD NOT** perform substitution in the `name` field to avoid
 circular references.
 
 ### 12.2 WEBP Embedding
@@ -1666,7 +1666,7 @@ To downgrade a V3 card to V2:
 
 For future versions beyond V3:
 
-1. Applications **SHOULD** NOT reject cards with `spec_version` greater than `"3.0"`.
+1. Applications **SHOULD NOT** reject cards with `spec_version` greater than `"3.0"`.
 2. Applications **SHOULD** alert users that the card was created with a newer specification.
 3. Applications **SHOULD** fill missing fields with defaults.
 4. Applications **SHOULD** ignore unrecognized fields rather than failing.
